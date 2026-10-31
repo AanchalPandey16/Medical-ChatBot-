@@ -351,27 +351,27 @@ def chat_stream():
         }
         for msg in previous_messages
     ]
-
     # Build context within token budget
-    chat_history = build_context(
-        system_prompt=MEDICAL_SYSTEM_PROMPT,
-        previous_messages=history,
-        user_message=message,
-        total_budget=4000,
-        response_reserve=300,
-        overhead_reserve=200
-    )
+    try:
+        chat_history = build_context(
+            system_prompt=MEDICAL_SYSTEM_PROMPT,
+            previous_messages=history,
+            user_message=message,
+            total_budget=4000,
+            response_reserve=300,
+            overhead_reserve=200
+        )
 
-    for msg in previous_messages:
-        chat_history.append({
-            "role": msg["role"],
-            "content": msg["content"]
-        })
+    except ValueError:
+        return jsonify({
+            "error": "Message exceeds the available context budget."
+        }), 400
 
-    chat_history.append({
-        "role": "user",
-        "content": message
-    })
+    except Exception:
+        app.logger.exception("Context manager failed")
+        return jsonify({
+            "error": "Unable to prepare conversation context."
+        }), 500
 
     # Convert events to SSE format
     def send_event(event_type, content):
@@ -470,53 +470,6 @@ def chat_stream():
         }
     )
 
-
-# Temporary route to test Flask streaming
-@app.route('/stream-test', methods=['GET'])
-def stream_test():
-
-    def generate():
-
-        try:
-            stream = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": "Explain fever in 3 simple sentences."
-                    }
-                ],
-                stream=True,
-                timeout=30
-            )
-
-            for chunk in stream:
-                if chunk.choices:
-                    text = chunk.choices[0].delta.content
-
-                    if text:
-                        yield f"data: {text}\n\n"
-
-            yield "event: done\ndata: complete\n\n"
-
-        except openai.OpenAIError:
-            app.logger.exception("Streaming API error")
-            yield "event: error\ndata: AI service unavailable\n\n"
-
-        except Exception:
-            app.logger.exception("Unexpected streaming error")
-            yield "event: error\ndata: Something went wrong\n\n"
-
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no"
-        }
-    )
-
-
 # execute the app
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="127.0.0.1", port=8080, debug=False)
