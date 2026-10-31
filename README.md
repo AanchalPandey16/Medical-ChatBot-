@@ -107,7 +107,9 @@ Frontend Displays Response
 <img width="1535" height="790" alt="image" src="https://github.com/user-attachments/assets/09fb3db6-deac-48c6-8a61-ec2328aefb38" />
 
 
-A short video demonstrating response streaming: Inside assets/
+### Real-Time Streaming Demo
+
+[Watch MediCare AI Streaming Demo](assets/streaming.mp4)
 
 
 ## Installation and Local Setup
